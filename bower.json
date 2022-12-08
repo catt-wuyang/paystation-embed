@@ -6,19 +6,11 @@
   ],
   "description": "PayStation 3 Integration Widget",
   "main": "dist/widget.js",
-  "moduleType": [
-    "node"
-  ],
+  "moduleType": ["node"],
   "license": "MIT",
-  "homepage": "http://xsolla.com",
+  "homepage": "https://xsolla.com",
   "private": false,
-  "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
-  ],
+  "ignore": ["**/.*", "node_modules", "bower_components", "test", "tests"],
   "dependencies": {
     "bowser": "^1.3.0"
   }

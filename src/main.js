@@ -1,25 +1,32 @@
-var Helpers = require('./helpers')
-var App = require('./app');
-var polyfills = require('./polyfills');
+import * as Helpers from "./helpers";
+import App from "./app";
 
-polyfills.applyPolyfills();
+let instance;
 
-var instance;
+const getInstance = function () {
+  if (!instance) {
+    instance = new App();
+  }
+  return instance;
+};
 
-module.exports = (function () {
-    var getInstance = function () {
-        if (!instance) {
-            instance = new App();
-        }
-        return instance;
-    };
-
-    return Object.assign(Helpers.zipObject(['init', 'open', 'close', 'on', 'off', 'sendMessage', 'onMessage'].map(function (methodName) {
-        var app = getInstance();
-        return [methodName, function () {
+const widget = Object.assign(
+  Helpers.zipObject(
+    ["init", "open", "close", "on", "off", "sendMessage", "onMessage"].map(
+      function (methodName) {
+        const app = getInstance();
+        return [
+          methodName,
+          function () {
             return app[methodName].apply(app, arguments);
-        }];
-    })), {
-        eventTypes: App.eventTypes,
-    });
-})();
+          },
+        ];
+      }
+    )
+  ),
+  {
+    eventTypes: App.eventTypes,
+  }
+);
+
+export default widget;
