@@ -1,126 +1,130 @@
-var version = require('./version');
-var Helpers = require('./helpers');
-var PostMessage = require('./postmessage');
+import version from "./version";
+import * as Helpers from "./helpers";
+import PostMessage from "./postmessage";
 
-module.exports = (function () {
-    function ChildWindow() {
-        this.eventObject = Helpers.addEventObject(this, wrapEventInNamespace);
-        this.message = null;
-    }
+function ChildWindow() {
+  this.eventObject = Helpers.addEventObject(this, wrapEventInNamespace);
+  this.message = null;
+}
 
-    function wrapEventInNamespace(eventName) {
-        return ChildWindow._NAMESPACE + '_' + eventName;
-    }
+function wrapEventInNamespace(eventName) {
+  return ChildWindow._NAMESPACE + "_" + eventName;
+}
 
-    var DEFAULT_OPTIONS = {
-        target: '_blank'
-    };
+const DEFAULT_OPTIONS = {
+  target: "_blank",
+};
 
-    /** Private Members **/
-    ChildWindow.prototype.eventObject = null;
-    ChildWindow.prototype.childWindow = null;
+/** Private Members **/
+ChildWindow.prototype.eventObject = null;
+ChildWindow.prototype.childWindow = null;
 
-    ChildWindow.prototype.triggerEvent = function (event, data) {
-        this.eventObject.trigger(event, data);
-    };
+ChildWindow.prototype.triggerEvent = function (event, data) {
+  this.eventObject.trigger(event, data);
+};
 
-    /** Public Members **/
-    ChildWindow.prototype.open = function (url, options) {
-        options = Object.assign({}, DEFAULT_OPTIONS, options);
+/** Public Members **/
+ChildWindow.prototype.open = function (url, options) {
+  options = Object.assign({}, DEFAULT_OPTIONS, options);
 
-        if (this.childWindow && !this.childWindow.closed) {
-            this.childWindow.location.href = url;
+  if (this.childWindow && !this.childWindow.closed) {
+    this.childWindow.location.href = url;
+  }
+
+  const that = this;
+  const addHandlers = function () {
+    that.on("close", function handleClose() {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      if (that.childWindow) {
+        that.childWindow.close();
+      }
+
+      that.off("close", handleClose);
+    });
+
+    // Cross-window communication
+    that.message = new PostMessage(that.childWindow);
+    that.message.on(
+      "dimensions widget-detection",
+      function handleWidgetDetection() {
+        that.triggerEvent("load");
+        that.message.off("dimensions widget-detection", handleWidgetDetection);
+      }
+    );
+    that.message.on("widget-detection", function handleWidgetDetection() {
+      that.message.send("widget-detected", {
+        version: version,
+        childWindowOptions: options,
+      });
+      that.message.off("widget-detection", handleWidgetDetection);
+    });
+    that.message.on("status", function (event) {
+      that.triggerEvent("status", event.detail);
+    });
+    that.on("close", function handleClose() {
+      that.message.off();
+      that.off("close", handleClose);
+    });
+    that.message.on("user-country", function (event) {
+      that.triggerEvent("user-country", event.detail);
+    });
+  };
+
+  switch (options.target) {
+    case "_self":
+      this.childWindow = window;
+      addHandlers();
+      this.childWindow.location.href = url;
+      break;
+    case "_parent":
+      this.childWindow = window.parent;
+      addHandlers();
+      this.childWindow.location.href = url;
+      break;
+    case "_blank":
+    default:
+      this.childWindow = window.open(url);
+      this.childWindow.focus();
+      addHandlers();
+
+      const checkWindow = function () {
+        if (this.childWindow) {
+          if (this.childWindow.closed) {
+            this.triggerEvent("close");
+          } else {
+            timer = setTimeout(checkWindow, 100);
+          }
         }
+      }.bind(this);
+      const timer = setTimeout(checkWindow, 100);
+      break;
+  }
 
-        var that = this;
-        var addHandlers = function () {
-            that.on('close', function handleClose() {
-                if (timer) {
-                    global.clearTimeout(timer);
-                }
-                if (that.childWindow) {
-                    that.childWindow.close();
-                }
+  this.triggerEvent("open");
+};
 
-                that.off('close', handleClose)
-            });
+ChildWindow.prototype.close = function () {
+  this.triggerEvent("close");
+};
 
-            // Cross-window communication
-            that.message = new PostMessage(that.childWindow);
-            that.message.on('dimensions widget-detection', function handleWidgetDetection() {
-                that.triggerEvent('load');
-                that.message.off('dimensions widget-detection', handleWidgetDetection);
-            });
-            that.message.on('widget-detection', function handleWidgetDetection() {
-                that.message.send('widget-detected', {version: version, childWindowOptions: options});
-                that.message.off('widget-detection', handleWidgetDetection);
-            });
-            that.message.on('status', function (event) {
-                that.triggerEvent('status', event.detail);
-            });
-            that.on('close', function handleClose() {
-                that.message.off();
-                that.off('close', handleClose);
-            });
-            that.message.on('user-country', function (event) {
-                that.triggerEvent('user-country', event.detail);
-            });
-        };
+ChildWindow.prototype.on = function (event, handler, options) {
+  if (typeof handler !== "function") {
+    return;
+  }
 
-        switch (options.target) {
-            case '_self':
-                this.childWindow = global.window;
-                addHandlers();
-                this.childWindow.location.href = url;
-                break;
-            case '_parent':
-                this.childWindow = global.window.parent;
-                addHandlers();
-                this.childWindow.location.href = url;
-                break;
-            case '_blank':
-            default:
-                this.childWindow = global.window.open(url);
-                this.childWindow.focus();
-                addHandlers();
+  this.eventObject.on(event, handler, options);
+};
 
-                var checkWindow = (function () {
-                    if (this.childWindow) {
-                        if (this.childWindow.closed) {
-                            this.triggerEvent('close');
-                        } else {
-                            timer = global.setTimeout(checkWindow, 100);
-                        }
-                    }
-                }).bind(this);
-                var timer = global.setTimeout(checkWindow, 100);
-                break;
-        }
+ChildWindow.prototype.off = function (event, handler, options) {
+  this.eventObject.off(event, handler, options);
+};
 
-        this.triggerEvent('open');
-    };
+ChildWindow.prototype.getPostMessage = function () {
+  return this.message;
+};
 
-    ChildWindow.prototype.close = function () {
-        this.triggerEvent('close');
-    };
+ChildWindow._NAMESPACE = "CHILD_WINDOW";
 
-    ChildWindow.prototype.on = function (event, handler, options) {
-        if (typeof handler !== 'function') {
-            return;
-        }
-
-        this.eventObject.on(event, handler, options);
-    };
-
-    ChildWindow.prototype.off = function (event, handler, options) {
-        this.eventObject.off(event, handler, options);
-    };
-
-    ChildWindow.prototype.getPostMessage = function () {
-        return this.message;
-    };
-
-    ChildWindow._NAMESPACE = 'CHILD_WINDOW';
-
-    return ChildWindow;
-})();
+export default ChildWindow;

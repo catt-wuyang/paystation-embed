@@ -1,21 +1,27 @@
 # Changelog
 
 ## 1.2.9
+
 - [fix] Fixed documentation
 
 ## 1.2.8
+
 - [fix] Fix iframe closing case
 
 ## 1.2.7
+
 - [feature] Added close function
 
 ## 1.2.6
+
 - [fix] hideScrollbar function fix
 
 ## 1.2.5
+
 - [fix] Fixed documentation
 
 ## 1.2.4 - 2021-11-22
+
 - [fix] Fixed incorrect format of the paymentInfo
 
 ## 1.2.3 - 2020-12-07
@@ -26,7 +32,7 @@
 ## 1.2.2 - 2020-10-21
 
 - [fix] Fixed adding custom event
-- [feature] Added decorator for handler method `XPayStationWidget.on` 
+- [feature] Added decorator for handler method `XPayStationWidget.on`
 
 ## 1.2.1 - 2020-09-08
 

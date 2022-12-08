@@ -1,16 +1,12 @@
-var bowser = require('bowser');
+// import Bowser from "bowser";
+// console.log(Bowser);
+// const browser = Bowser.getParser(window.navigator.userAgent);
 
-module.exports = (function () {
-    function Device() {
-    }
+function Device() {}
 
-    /**
-     * Mobile devices
-     * @returns {boolean}
-     */
-    Device.prototype.isMobile = function() {
-        return bowser.mobile || bowser.tablet;
-    };
+Device.prototype.isMobile = function () {
+  return false;
+  //   return browser.mobile || browser.tablet;
+};
 
-    return Device;
-})();
+export default Device;
